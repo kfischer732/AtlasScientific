@@ -40,9 +40,35 @@ def main():
 
         ###  sample a single measurement from the probe
         elif user_cmd.upper().strip().startswith('SAMPLE'):
-            for dev in device_list:
-                dev.write("R")
-                print(dev.read())
+            cmd_list = user_cmd.split(',')
+
+            ###  setting sampling parameters
+            n_sample = 1
+            delaytime = 1
+            if len(cmd_list) == 1:
+                pass
+            elif len(cmd_list) == 2:
+                n_sample = int(cmd_list[1])
+            elif len(cmd_list) == 3:
+                n_sample = int(cmd_list[1])
+                delaytime = float(cmd_list[2])
+
+            for i_sample in range(n_sample):
+                for dev in device_list:
+                    dev.write("R")
+                time.sleep(delaytime)
+                for dev in device_list:
+                    print(dev.read())
+
+        ###  continuously record measurements to the given file name
+        elif user_cmd.upper().strip().startswith('RECORD'):
+            cmd_list = user_cmd.split(',')
+            break
+
+            if len(cmd_list) != 2:
+                raise IOError('Invalid output file name')
+
+            
 
 
         # continuous polling command automatically polls the board
@@ -147,6 +173,9 @@ def print_help_text():
       Ex: "102:status" will send the command status to address 102
   - all:[command]
       sends the command to all devices
+  - Sample[,x,y]
+      sample x measurements (default=1) from all devices at a
+      rate of y seconds (default=1) per measurement
   - Poll[,x.xx]
       command continuously polls all devices
       the optional argument [,x.xx] lets you set a polling time
