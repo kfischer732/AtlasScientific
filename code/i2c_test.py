@@ -61,12 +61,23 @@ def main():
                     print(dev.read())
 
         ###  continuously record measurements to the given file name
+        ###  Example >>> RECORD,filename.txt
         elif user_cmd.upper().strip().startswith('RECORD'):
             cmd_list = user_cmd.split(',')
             break
 
             if len(cmd_list) != 2:
                 raise IOError('Invalid output file name')
+
+            filename = cmd_list[1]
+            #fopen = open('../data/%s'%filename, 'w')
+            #fopen.write('timestamp,pH\n')
+
+            '''
+            INSERT CODE HERE
+            '''
+
+            now = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
 
             
 
