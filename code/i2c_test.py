@@ -45,42 +45,27 @@ def main():
 
 
         ###  continuously record measurements to the given file name
-        ###  Example >>> RECORD,filename.txt,rate
+        ###  Example >>> RECORD,filename.txt,delay
         elif user_cmd.upper().strip().startswith('RECORD'):
             cmd_list = user_cmd.split(',')
             break
 
             if len(cmd_list) != 2:
-                raise IOError('Invalid output file name')
+                raise IOError('Invalid input(s)')
 
-            ###  parsing output file path, if no path was specified 
-            ###  (i.e. onlay a filename), then save to ../data/
-            filename = cmd_list[1]
-            if os.path.sep not in filepath:
-                filepath = os.path.join('..', 'data', filename)
-            else:
-                filepath = filename
-
-            ###  parsing sampling rate, default is 5 seconds per reading
-            rate = 5
+            ###  parsing number of samples
+            N = None
             if len(cmd_list) > 2:
-                rate = int(cmd_list[2])
+                N = int(cmd_list[2])
+
+            ###  parsing sampling delay
+            delay = 2
+            if len(cmd_list) > 3:
+                delay = float(cmd_list[3])
 
             print('Reading sensor at rate of %i Hz' % rate)
             print('Saving readings to %s' % filepath)
-
-            '''
-            ###  NOTE: THIS CODE WAS WRITTEN TO HANDLE ONLY READINGS FROM ONE
-            ###        SENSOR. IT MAY NOT WORK WITH MULTIPLE SENSORS ATTACHED
-            fopen = open('../data/%s'%filename, 'w')
-            fopen.write('timestamp,measurement\n')
-
-            
-            '''
-
-            now = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-
-            
+            record(filename, N=N, delay=delay)
 
 
         # continuous polling command automatically polls the board
@@ -157,6 +142,7 @@ def print_devices(device_list, device):
             print(" - " + i.get_device_info())
     #print("")
     
+
 def get_devices():
     device = AtlasI2C()
     device_address_list = device.list_i2c_devices()
@@ -169,6 +155,7 @@ def get_devices():
         response = device.query("name,?").split(",")[1]
         device_list.append(AtlasI2C(address = i, moduletype = moduletype, name = response))
     return device_list 
+
 
 def print_help_text():
     print('''
@@ -207,6 +194,7 @@ def print_help_text():
     ----
         Press Ctrl-c to stop
     '''
+
 
 def sample(N=1, delay=2, verbose=True):
     '''
@@ -253,6 +241,52 @@ def sample(N=1, delay=2, verbose=True):
                 print('sampling %s at %.2f' % (measurement['device_name'], measurement['value']))
 
     return measurements
+
+
+def record(filename, N=None, delay=2):
+    '''
+    Description
+    -----------
+        Continuously samples device and saves readings to output file
+
+    Parameters
+    ----------
+        filename : str
+            File name or path to save output to
+
+        N : int
+            Number of readings to make. If `None` will sample indefinitely
+
+        delay : float
+            Delay time (in seconds) between samplings
+    '''
+
+    ###  parsing output file path, if no path was specified 
+    ###  (i.e. onlay a filename), then save to ../data/
+    if os.path.sep not in filename:
+        filepath = os.path.join('..', 'data', filename)
+    elif filename.endswith(os.path.sep):
+        raise IOError('Provided path must include a valid file name')
+    else:
+        filepath = filename
+
+    ###  NOTE: THIS CODE WAS WRITTEN TO HANDLE ONLY READINGS FROM ONE
+    ###        SENSOR. IT MAY NOT WORK WITH MULTIPLE SENSORS ATTACHED
+    ###  initializing output file
+    with fopen open(filepath, 'w') as fopen:
+        fopen.write('timestamp,device,measurement\n')
+
+    ###  continuously sampling sensor
+    counter = 0
+    while True:
+        counter += 1
+        if (N is not None) and (counter > N):
+            break
+        time.sleep(delay)
+        measurement = device_list[0].read_value(num_of_bytes=31)
+        now = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        with fopen open(filepath, 'w') as fopen:
+            fopen.write('%s,%s,%.3f\n' % (now, measurement['device_name'], measurement['value']))
 
 
 if __name__ == '__main__':
