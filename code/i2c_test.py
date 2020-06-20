@@ -215,22 +215,9 @@ def sample(N=1, delay=2, verbose=True):
             Print individual samplings to screen
     '''
 
-    cmd_list = user_cmd.split(',')
-
-    ###  setting sampling parameters
-    n_sample = 1
-    delay = 2
-    if len(cmd_list) == 1:
-        pass
-    elif len(cmd_list) == 2:
-        n_sample = int(cmd_list[1])
-    elif len(cmd_list) == 3:
-        n_sample = int(cmd_list[1])
-        delay = float(cmd_list[2])
-
     ###  sampling measurements
     measurements = []
-    for i_sample in range(n_sample):
+    for i_sample in range(N):
         for dev in device_list:
             dev.write("R")
         time.sleep(delay)
