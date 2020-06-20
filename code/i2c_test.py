@@ -114,7 +114,11 @@ def main():
                 time.sleep(timeout)
                 for dev in device_list:
                     print(dev.read())
-                
+
+        ###  exit the program
+        elif (user_cmd.upper().strip().startswith("EXIT")) or (user_cmd.upper().strip().startswith("QUIT")):
+            sys.exit()
+
         # if not a special keyword, see if we change the address, and communicate with that device
         else:
             try:
@@ -291,9 +295,6 @@ def record(device, filename, N=None, delay=2):
             fopen.write('%s,%s,%.3f\n' % (now, measurement['module'], measurement['value']))
 
 
-def exit():
-    ###  define exit function
-    pass
 
 
 if __name__ == '__main__':
