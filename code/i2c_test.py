@@ -40,15 +40,24 @@ def main():
 
         ###  sample a single measurement from the probe
         elif user_cmd.upper().strip().startswith('SAMPLE'):
+            cmd_list = user_cmd.split(',')
+
+            ###  setting parameters if provided
+            N = 1
+            delay = 2
+            if len(cmd_list) > 1:
+                N = int(cmd_list[1])
+            if len(cmd_list) > 2:
+                delay = float(cmd_list[2])
+
             print('Sampling measurements from %s' % device_list[0])
-            measurements = sample(N=1, delay=2, verbose=True)
+            measurements = sample(device_list[0], N=N, delay=delay, verbose=True)
 
 
         ###  continuously record measurements to the given file name
         ###  Example >>> RECORD,filename.txt,delay
         elif user_cmd.upper().strip().startswith('RECORD'):
             cmd_list = user_cmd.split(',')
-            break
 
             if len(cmd_list) != 2:
                 raise IOError('Invalid input(s)')
@@ -63,9 +72,9 @@ def main():
             if len(cmd_list) > 3:
                 delay = float(cmd_list[3])
 
-            print('Reading sensor at rate of %i Hz' % rate)
+            print('Reading sensor')
             print('Saving readings to %s' % filepath)
-            record(filename, N=N, delay=delay)
+            record(device_list[0], filename, N=N, delay=delay)
 
 
         # continuous polling command automatically polls the board
@@ -197,7 +206,7 @@ def print_help_text():
     return None
 
 
-def sample(N=1, delay=2, verbose=True):
+def sample(device, N=1, delay=2, verbose=True):
     '''
     Description
     -----------
@@ -205,6 +214,9 @@ def sample(N=1, delay=2, verbose=True):
 
     Parameters
     ----------
+        device : AtlasI2C.AtlasI2C
+            Atlas Scientific device
+
         N : int
             Number of measurements to sample
 
@@ -218,20 +230,18 @@ def sample(N=1, delay=2, verbose=True):
     ###  sampling measurements
     measurements = []
     for i_sample in range(N):
-        for dev in device_list:
-            dev.write("R")
+        device.write("R")
         time.sleep(delay)
-        for dev in device_list:
-            #print(dev.read())
-            measurement = dev.read_value(num_of_bytes=31)
-            measurements.append(measurement['value'])
-            if verbose == True:
-                print('sampling %s at %.2f' % (measurement['device_name'], measurement['value']))
+        #print(device.read())
+        measurement = device.read_value(num_of_bytes=31)
+        measurements.append(measurement['value'])
+        if verbose == True:
+            print('sampling %s at %.2f' % (measurement['device_name'], measurement['value']))
 
     return measurements
 
 
-def record(filename, N=None, delay=2):
+def record(device, filename, N=None, delay=2):
     '''
     Description
     -----------
@@ -239,6 +249,9 @@ def record(filename, N=None, delay=2):
 
     Parameters
     ----------
+        device : AtlasI2C.AtlasI2C
+            Atlas Scientific device
+
         filename : str
             File name or path to save output to
 
@@ -271,7 +284,7 @@ def record(filename, N=None, delay=2):
         if (N is not None) and (counter > N):
             break
         time.sleep(delay)
-        measurement = device_list[0].read_value(num_of_bytes=31)
+        measurement = device.read_value(num_of_bytes=31)
         now = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
         with fopen open(filepath, 'w') as fopen:
             fopen.write('%s,%s,%.3f\n' % (now, measurement['device_name'], measurement['value']))
