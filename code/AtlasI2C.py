@@ -162,7 +162,7 @@ class AtlasI2C:
 
         if is_valid:
             char_list = self.handle_raspi_glitch(response[1:])
-            measurement = {'device_name':self.get_device_info(), 
+            measurement = {'module':self._module, 
                            'value':float(''.join(char_list))}
         else:
             raise IOError('Error %s: %s' % (self.get_device_info(), error_code))

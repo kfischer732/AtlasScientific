@@ -1,5 +1,6 @@
 #!/usr/bin/python
 
+import os
 import io
 import sys
 import fcntl
@@ -50,7 +51,7 @@ def main():
             if len(cmd_list) > 2:
                 delay = float(cmd_list[2])
 
-            print('Sampling measurements from %s' % device_list[0])
+            print('Sampling measurements from %s sensor' % device_list[0]._module)
             measurements = sample(device_list[0], N=N, delay=delay, verbose=True)
 
 
@@ -72,9 +73,7 @@ def main():
             if len(cmd_list) > 3:
                 delay = float(cmd_list[3])
 
-            print('Reading sensor')
-            print('Saving readings to %s' % filepath)
-            record(device_list[0], filename, N=N, delay=delay)
+            record(device_list[0], cmd_list[1], N=N, delay=delay)
 
 
         # continuous polling command automatically polls the board
@@ -236,7 +235,7 @@ def sample(device, N=1, delay=2, verbose=True):
         measurement = device.read_value(num_of_bytes=31)
         measurements.append(measurement['value'])
         if verbose == True:
-            print('sampling %s at %.2f' % (measurement['device_name'], measurement['value']))
+            print('%s,%s,%.3f' % (datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'), measurement['module'], measurement['value']))
 
     return measurements
 
@@ -274,7 +273,9 @@ def record(device, filename, N=None, delay=2):
     ###  NOTE: THIS CODE WAS WRITTEN TO HANDLE ONLY READINGS FROM ONE
     ###        SENSOR. IT MAY NOT WORK WITH MULTIPLE SENSORS ATTACHED
     ###  initializing output file
-    with fopen open(filepath, 'w') as fopen:
+    print('Reading %s sensor' % device._module)
+    print('Saving readings to %s' % filepath)
+    with open(filepath, 'w') as fopen:
         fopen.write('timestamp,device,measurement\n')
 
     ###  continuously sampling sensor
@@ -286,8 +287,13 @@ def record(device, filename, N=None, delay=2):
         time.sleep(delay)
         measurement = device.read_value(num_of_bytes=31)
         now = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-        with fopen open(filepath, 'w') as fopen:
-            fopen.write('%s,%s,%.3f\n' % (now, measurement['device_name'], measurement['value']))
+        with open(filepath, 'w') as fopen:
+            fopen.write('%s,%s,%.3f\n' % (now, measurement['module'], measurement['value']))
+
+
+def exit():
+    ###  define exit function
+    pass
 
 
 if __name__ == '__main__':
