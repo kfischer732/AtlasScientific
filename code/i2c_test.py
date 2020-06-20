@@ -193,7 +193,8 @@ def print_help_text():
     Exit
     ----
         Press Ctrl-c to stop
-    '''
+    ''')
+    return None
 
 
 def sample(N=1, delay=2, verbose=True):
