@@ -40,28 +40,12 @@ def main():
 
         ###  sample a single measurement from the probe
         elif user_cmd.upper().strip().startswith('SAMPLE'):
-            cmd_list = user_cmd.split(',')
+            print('Sampling measurements from %s' % device_list[0])
+            measurements = sample(N=1, delay=2, verbose=True)
 
-            ###  setting sampling parameters
-            n_sample = 1
-            delaytime = 1
-            if len(cmd_list) == 1:
-                pass
-            elif len(cmd_list) == 2:
-                n_sample = int(cmd_list[1])
-            elif len(cmd_list) == 3:
-                n_sample = int(cmd_list[1])
-                delaytime = float(cmd_list[2])
-
-            for i_sample in range(n_sample):
-                for dev in device_list:
-                    dev.write("R")
-                time.sleep(delaytime)
-                for dev in device_list:
-                    print(dev.read())
 
         ###  continuously record measurements to the given file name
-        ###  Example >>> RECORD,filename.txt
+        ###  Example >>> RECORD,filename.txt,rate
         elif user_cmd.upper().strip().startswith('RECORD'):
             cmd_list = user_cmd.split(',')
             break
@@ -69,12 +53,29 @@ def main():
             if len(cmd_list) != 2:
                 raise IOError('Invalid output file name')
 
+            ###  parsing output file path, if no path was specified 
+            ###  (i.e. onlay a filename), then save to ../data/
             filename = cmd_list[1]
-            #fopen = open('../data/%s'%filename, 'w')
-            #fopen.write('timestamp,pH\n')
+            if os.path.sep not in filepath:
+                filepath = os.path.join('..', 'data', filename)
+            else:
+                filepath = filename
+
+            ###  parsing sampling rate, default is 5 seconds per reading
+            rate = 5
+            if len(cmd_list) > 2:
+                rate = int(cmd_list[2])
+
+            print('Reading sensor at rate of %i Hz' % rate)
+            print('Saving readings to %s' % filepath)
 
             '''
-            INSERT CODE HERE
+            ###  NOTE: THIS CODE WAS WRITTEN TO HANDLE ONLY READINGS FROM ONE
+            ###        SENSOR. IT MAY NOT WORK WITH MULTIPLE SENSORS ATTACHED
+            fopen = open('../data/%s'%filename, 'w')
+            fopen.write('timestamp,measurement\n')
+
+            
             '''
 
             now = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
@@ -168,33 +169,98 @@ def get_devices():
         response = device.query("name,?").split(",")[1]
         device_list.append(AtlasI2C(address = i, moduletype = moduletype, name = response))
     return device_list 
-       
+
 def print_help_text():
     print('''
->> Atlas Scientific I2C sample code
->> Any commands entered are passed to the default target device via I2C except:
-  - Help
-      brings up this menu
-  - List 
-      lists the available I2C circuits.
-      the --> indicates the target device that will receive individual commands
-  - xxx:[command]
-      sends the command to the device at I2C address xxx 
-      and sets future communications to that address
-      Ex: "102:status" will send the command status to address 102
-  - all:[command]
-      sends the command to all devices
-  - Sample[,x,y]
-      sample x measurements (default=1) from all devices at a
-      rate of y seconds (default=1) per measurement
-  - Poll[,x.xx]
-      command continuously polls all devices
-      the optional argument [,x.xx] lets you set a polling time
-      where x.xx is greater than the minimum %0.2f second timeout.
-      by default it will poll every %0.2f seconds
->> Pressing ctrl-c will stop the polling
-    ''' % (AtlasI2C.LONG_TIMEOUT, AtlasI2C.LONG_TIMEOUT))
+    Description
+    -----------
+        Atlas Scientific I2C sample code
+        Any commands entered are passed to the default target device via I2C except:
+
+    Commands
+    --------
+        Help
+            Brings up this menu
+
+        List 
+            Lists the available I2C circuits.
+            The --> indicates the target device that will receive individual commands
+        
+        Sample,N,delay
+            Sample measurements from all devices
+            N ------- Number of measurements to sample (default=1)
+            delay --- Delay time between samplings (seconds, default=2)
+
+        Poll,delay
+          Continuously polls all devices
+          delay ----- Delay time between samplings (seconds, default=2)
+        
+        xxx:[command]
+          Sends the command to the device at I2C address xxx 
+          and sets future communications to that address
+          Ex: "102:status" will send the command status to address 102
+        
+        all:[command]
+          Sends the command to all devices
+
+    Exit
+    ----
+        Press Ctrl-c to stop
+    '''
+
+def sample(N=1, delay=2, verbose=True):
+    '''
+    Description
+    -----------
+        Sample `N` measurements from all devices every `delay` seconds
+
+    Parameters
+    ----------
+        N : int
+            Number of measurements to sample
+
+        delay : float
+            Delay time (in seconds) between samplings
+
+        verbose : bool
+            Print individual samplings to screen
+    '''
+
+    cmd_list = user_cmd.split(',')
+
+    ###  setting sampling parameters
+    n_sample = 1
+    delay = 2
+    if len(cmd_list) == 1:
+        pass
+    elif len(cmd_list) == 2:
+        n_sample = int(cmd_list[1])
+    elif len(cmd_list) == 3:
+        n_sample = int(cmd_list[1])
+        delay = float(cmd_list[2])
+
+    ###  sampling measurements
+    measurements = []
+    for i_sample in range(n_sample):
+        for dev in device_list:
+            dev.write("R")
+        time.sleep(delay)
+        for dev in device_list:
+            #print(dev.read())
+            measurement = dev.read_value(num_of_bytes=31)
+            measurements.append(measurement['value'])
+            if verbose == True:
+                print('sampling %s at %.2f' % (measurement['device_name'], measurement['value']))
+
+    return measurements
 
 
 if __name__ == '__main__':
     main()
+
+
+
+
+
+
+

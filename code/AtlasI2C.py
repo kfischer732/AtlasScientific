@@ -146,6 +146,29 @@ class AtlasI2C:
 
         return result
 
+    def read_value(self, num_of_bytes=31):
+        '''
+        reads a specified number of bytes from I2C, then parses and returns the value
+
+        Returns
+        -------
+            measurement : dict
+                Dictionary containing measurement
+        '''
+        
+        raw_data = self.file_read.read(num_of_bytes)
+        response = self.get_response(raw_data=raw_data)
+        is_valid, error_code = self.response_valid(response=response)
+
+        if is_valid:
+            char_list = self.handle_raspi_glitch(response[1:])
+            measurement = {'device_name':self.get_device_info(), 
+                           'value':float(''.join(char_list))}
+        else:
+            raise IOError('Error %s: %s' % (self.get_device_info(), error_code))
+
+        return measurement
+
     def get_command_timeout(self, command):
         timeout = None
         if command.upper().startswith(self.LONG_TIMEOUT_COMMANDS):
