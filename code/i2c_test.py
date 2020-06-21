@@ -60,7 +60,7 @@ def main():
         elif user_cmd.upper().strip().startswith('RECORD'):
             cmd_list = user_cmd.split(',')
 
-            if len(cmd_list) != 2:
+            if len(cmd_list) < 2:
                 raise IOError('Invalid input(s)')
 
             ###  parsing number of samples
@@ -282,23 +282,36 @@ def record(device, filename, N=None, delay=2):
     ###  NOTE: THIS CODE WAS WRITTEN TO HANDLE ONLY READINGS FROM ONE
     ###        SENSOR. IT MAY NOT WORK WITH MULTIPLE SENSORS ATTACHED
     ###  initializing output file
+    print('')
     print('Reading %s sensor every %.1f seconds' % (device._module, delay))
     print('Saving measurements to %s' % filepath)
+    print('')
     with open(filepath, 'w') as fopen:
         fopen.write('timestamp,device,measurement\n')
 
     ###  continuously sampling sensor
     counter = 0
-    time.sleep(delay)
     while True:
         counter += 1
         if (N is not None) and (counter > N):
             break
-        measurement = device.read_value(num_of_bytes=31)
+        device.write("R")
         time.sleep(delay)
+        measurement = device.read_value(num_of_bytes=31)
         now = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        line = '%s,%s,%.3f' % (now, measurement['module'], measurement['value'])
         with open(filepath, 'a') as fopen:
-            fopen.write('%s,%s,%.3f\n' % (now, measurement['module'], measurement['value']))
+            fopen.write(line + '\n')
+
+        ###  printing progress to stdout
+        if N is None:
+            msg = '(%i / inf)' % counter
+        else:
+            msg = '(%i / %i)' % (counter, N)
+        sys.stdout.write('\r%s %s' % (msg, line))
+        sys.stdout.flush()
+    print('\n')
+
 
 
 
