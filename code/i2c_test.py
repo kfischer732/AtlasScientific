@@ -189,6 +189,12 @@ def print_help_text():
             Sample measurements from all devices
             N ------- Number of measurements to sample (default=1)
             delay --- Delay time between samplings (seconds, default=2)
+        
+        Record,filename,N,delay
+            Sample measurements and save to output
+            filename --- File name to save measurements to
+            N ---------- Number of measurements to sample (default=1)
+            delay ------ Delay time between samplings (seconds, default=2)
 
         Poll,delay
           Continuously polls all devices
@@ -202,9 +208,8 @@ def print_help_text():
         all:[command]
           Sends the command to all devices
 
-    Exit
-    ----
-        Press Ctrl-c to stop
+        Exit or Quit
+            Exit the program
     ''')
     return None
 
@@ -277,21 +282,22 @@ def record(device, filename, N=None, delay=2):
     ###  NOTE: THIS CODE WAS WRITTEN TO HANDLE ONLY READINGS FROM ONE
     ###        SENSOR. IT MAY NOT WORK WITH MULTIPLE SENSORS ATTACHED
     ###  initializing output file
-    print('Reading %s sensor' % device._module)
-    print('Saving readings to %s' % filepath)
+    print('Reading %s sensor every %.1f seconds' % (device._module, delay))
+    print('Saving measurements to %s' % filepath)
     with open(filepath, 'w') as fopen:
         fopen.write('timestamp,device,measurement\n')
 
     ###  continuously sampling sensor
     counter = 0
+    time.sleep(delay)
     while True:
         counter += 1
         if (N is not None) and (counter > N):
             break
-        time.sleep(delay)
         measurement = device.read_value(num_of_bytes=31)
+        time.sleep(delay)
         now = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-        with open(filepath, 'w') as fopen:
+        with open(filepath, 'a') as fopen:
             fopen.write('%s,%s,%.3f\n' % (now, measurement['module'], measurement['value']))
 
 
